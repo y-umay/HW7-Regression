@@ -56,7 +56,7 @@ class BaseRegressor():
 
             # Create list to save the parameter update sizes for each batch
             update_sizes = []
-
+            
             # Iterate through batches (one of these loops is one epoch of training)
             for X_train, y_train in zip(X_batch, y_batch):
 
@@ -79,8 +79,11 @@ class BaseRegressor():
                 self.loss_hist_val.append(val_loss)
 
             # Define step size as the average parameter update over the past epoch
-            prev_update_size = np.mean(np.array(update_sizes))
-
+            if len(update_sizes) > 0:
+                prev_update_size = np.mean(np.array(update_sizes))
+            else:
+                prev_update_size = 1  # Assign a default large value 
+            
             # Update iteration
             iteration += 1
     
@@ -129,7 +132,9 @@ class LogisticRegressor(BaseRegressor):
         Returns: 
             The predicted labels (y_pred) for given X.
         """
-        pass
+        z = np.dot(X, self.W)  # Linear combination of inputs and weights
+        y_pred = 1 / (1 + np.exp(-z))  # Apply sigmoid function
+        return y_pred
     
     def loss_function(self, y_true, y_pred) -> float:
         """
@@ -143,7 +148,18 @@ class LogisticRegressor(BaseRegressor):
         Returns: 
             The mean loss (a single number).
         """
-        pass
+        # To avoid computing np.mean() on an empty slice
+        if y_true.size == 0 or y_pred.size == 0:
+            # print("Warning: Empty y_true or y_pred encountered in loss_function()")
+            return np.nan  # Return NaN to catch the issue earlier
+        
+        # To prevent log(0) errors, clip predictions to [1e-9, 1 - 1e-9]
+        y_pred = np.clip(y_pred, 1e-9, 1 - 1e-9)
+
+        # Compute binary cross-entropy loss
+        loss = -np.mean(y_true * np.log(y_pred) + (1 - y_true) * np.log(1 - y_pred))
+
+        return loss
         
     def calculate_gradient(self, y_true, X) -> np.ndarray:
         """
@@ -157,4 +173,11 @@ class LogisticRegressor(BaseRegressor):
         Returns: 
             Vector of gradients.
         """
-        pass
+        y_pred = self.make_prediction(X)
+        error = y_pred - y_true  # Difference between predicted and true labels
+
+        if len(y_true) == 0:  # Prevent division by zero
+            return np.zeros_like(self.W)
+    
+        gradient = np.dot(X.T, error) / len(y_true)  # Compute gradient        
+        return gradient
