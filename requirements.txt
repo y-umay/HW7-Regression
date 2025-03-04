@@ -17,6 +17,5 @@ pytz==2025.1
 scikit-learn==1.6.1
 scipy==1.15.2
 six==1.17.0
-sklearn==0.0.post12
 threadpoolctl==3.5.0
 tzdata==2025.1
